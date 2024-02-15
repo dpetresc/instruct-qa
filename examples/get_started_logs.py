@@ -118,6 +118,7 @@ def main():
         complex_operation()
     finally:
         if profiler:
+            # test
             # Stop profiling
             profiler.disable()
             stats = pstats.Stats(profiler).sort_stats('cumulative')
