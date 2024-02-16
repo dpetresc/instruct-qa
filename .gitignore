@@ -133,6 +133,7 @@ dmypy.json
 .pyre/
 
 data/**
+logs/**
 results/**
 human_eval_annotations/**
 

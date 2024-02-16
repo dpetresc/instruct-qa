@@ -12,6 +12,7 @@ import pstats
 from memory_profiler import profile as mem_profile
 from functools import wraps
 from torch.profiler import profile, record_function, ProfilerActivity
+from torch.utils.tensorboard import SummaryWriter
 import argparse
 
 
@@ -145,11 +146,15 @@ def main():
         cstats.print_stats(100)
 
     elif args.use_profiler == 'pytorch':
+        # Define the directory for TensorBoard logs
+        #log_dir = "./logs"
+        #writer = SummaryWriter(log_dir)
         # Execute the function with PyTorch profiler
         with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
                     record_shapes=True,
                     profile_memory=True) as prof:
             complex_operation()
+        prof.export_chrome_trace("logs/pytorch_profiling_trace.json")
         print("PYORCH NOW:   ")
         print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
         # After your profiling block
@@ -165,7 +170,10 @@ def main():
             print(f"CUDA memory usage: {event.cuda_memory_usage} bytes")
             print(f"Number of calls: {event.count}")
             print("------")
-
+            #writer.add_scalar(f"Profiling/CPU time (ns) - {event.key}", event.cpu_time_total, global_step=0)
+            #writer.add_scalar(f"Profiling/CUDA time (ns) - {event.key}", event.cuda_time_total, global_step=0)
+            #writer.add_scalar(f"Profiling/CPU memory (bytes) - {event.key}", event.cpu_memory_usage, global_step=0)
+            #writer.add_scalar(f"Profiling/CUDA memory (bytes) - {event.key}", event.cuda_memory_usage, global_step=0)
     else:
         print("Executing without profiling...")
         complex_operation()
