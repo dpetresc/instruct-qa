@@ -3,6 +3,7 @@ import pkgutil
 import get_started_finegrain
 import importlib
 import instruct_qa
+import traceback
 
 loading_cached = None
 
@@ -31,3 +32,8 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("\nExiting the program.")
             break
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            traceback.print_exc()
+            continue
+        
