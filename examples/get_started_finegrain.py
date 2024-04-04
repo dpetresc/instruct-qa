@@ -4,6 +4,8 @@ from instruct_qa.prompt.utils import load_template
 from instruct_qa.generation.utils import load_model
 from instruct_qa.response_runner import ResponseRunner
 from sentence_transformers import SentenceTransformer
+from transformers import DPRQuestionEncoder, DPRQuestionEncoderTokenizer, DPRContextEncoder, DPRContextEncoderTokenizer, DPRReader, DPRReaderTokenizer
+
 import numpy as np
 
 def loading():
@@ -28,9 +30,15 @@ def running(loading_cached):
     # "sub_title": sub_title,
     # "index": index,
 
+    print(len(collection.passages))
     print(collection.passages[0]['text'])
 
+    # 'facebook/dpr-ctx_encoder-single-nq-base' is the DPR context encoder model trained on NQ alone
+    # 'facebook/dpr-ctx_encoder-multiset-base' is the DPR context encoder model trained on the multiset/hybrid dataset defined in the paper. It includes Natural Questions, TriviaQA, WebQuestions and CuratedTREC
     query_model = SentenceTransformer("facebook-dpr-question_encoder-multiset-base")
+    #query_model = SentenceTransformer("facebook-dpr-question_encoder-single-nq-base")
+    #query_model = SentenceTransformer("facebook-dpr-ctx_encoder-single-nq-base")
+    #query_model = SentenceTransformer("facebook-dpr-ctx_encoder-multiset-base")
 
     # Encode the target passage (ensure it's normalized and preprocessed as needed)
     query_embedding = query_model.encode(collection.passages[0]['text'])
@@ -38,6 +46,7 @@ def running(loading_cached):
     # Convert the query_embedding to FAISS compatible format (numpy array, float32)
     # 768
     print(len(query_embedding))
+    print(query_embedding/np.linalg.norm(query_embedding))
     query_embedding_np = np.array([query_embedding]).astype('float32')
     aux_dim = np.zeros(1, dtype="float32")
     query_embedding_np = np.hstack((query_embedding_np, aux_dim.reshape(-1, 1)))
@@ -58,7 +67,7 @@ def running(loading_cached):
     squared_distance_manual = np.sum(np.square(query_embedding_np - embedding_0))
     print("Squared L2 distance manually calculated:", squared_distance_manual)
 
-    print(help(index.index))
+    #print(help(index.index))
     # 1 The metric type 1 specifically refers to the L2 distance, also known as Euclidean distance.
     # print(index.index.metric_type)
 

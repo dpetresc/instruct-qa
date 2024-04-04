@@ -7,7 +7,9 @@ from instruct_qa.response_runner import ResponseRunner
 collection = load_collection("dpr_wiki_collection")
 index = load_index("dpr-nq-multi-hnsw")
 retriever = load_retriever("facebook-dpr-question_encoder-multiset-base", index)
-model = load_model("flan-t5-xxl")
+#model = load_model("flan-t5-xxl")
+path_to_llama = "/home/dpetresc/.cache/huggingface/hub/models--meta-llama--Llama-2-7b-chat-hf/snapshots/c1b0db933684edbfe29a06fa47eb19cc48025e93/"
+model = load_model("meta-llama/Llama-2-7b-chat-hf", weights_path=path_to_llama)
 prompt_template = load_template("qa")
 
 queries = ["what is haleys comet"]
