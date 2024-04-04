@@ -14,6 +14,15 @@ def reload_package(package):
             if module:
                 importlib.reload(module)
 
+def reload():
+    print("Press enter to re-run the script, CTRL-C to exit")
+    sys.stdin.readline()
+    # Reload all modules in instruct_qa
+    reload_package(instruct_qa)
+    # Reload get_started_finegrain after reloading all instruct_qa modules
+    importlib.reload(get_started_finegrain)
+    
+
 if __name__ == "__main__":
     while True:
         try:
@@ -21,13 +30,8 @@ if __name__ == "__main__":
                 loading_cached = get_started_finegrain.loading()
 
             get_started_finegrain.running(loading_cached)
-            print("Press enter to re-run the script, CTRL-C to exit")
-            sys.stdin.readline()
 
-            # Reload all modules in instruct_qa
-            reload_package(instruct_qa)
-            # Reload get_started_finegrain after reloading all instruct_qa modules
-            importlib.reload(get_started_finegrain)
+            reload()
 
         except KeyboardInterrupt:
             print("\nExiting the program.")
@@ -35,5 +39,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"An error occurred: {e}")
             traceback.print_exc()
-            continue
-        
+            reload()
