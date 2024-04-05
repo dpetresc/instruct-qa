@@ -1,0 +1,46 @@
+import pandas as pd
+import numpy as np
+import faiss
+
+df = pd.read_parquet('data/nq/embeddings/train-00000-of-00001.parquet', engine='pyarrow')
+
+vectors = np.array(df['embeddings'])
+print(vectors[0])
+
+buffer_size: int = 1e9
+store_n: int = 512
+ef_search: int = 128
+ef_construction: int = 200
+
+index = faiss.IndexHNSWFlat(769, store_n)
+index.hnsw.efSearch = ef_search
+index.hnsw.efConstruction = ef_construction
+
+n = len(vectors)
+
+phi = 0
+
+for i, doc_vector in enumerate(vectors):
+    norms = (doc_vector ** 2).sum()
+    phi = max(phi, norms)
+
+print(phi)
+
+bs = int(buffer_size)
+
+for i in range(0, n, bs):
+    vectors_ = [np.reshape(t, (1, -1)) for t in vectors[i : i + bs]]
+
+    norms = [(doc_vector ** 2).sum() for doc_vector in vectors_]
+    aux_dims = [np.sqrt(phi - norm) for norm in norms]
+    hnsw_vectors = [np.hstack((doc_vector, aux_dims[i].reshape(-1, 1))) for i, doc_vector in enumerate(vectors_)]
+    hnsw_vectors = np.concatenate(hnsw_vectors, axis=0)
+
+    index.add(hnsw_vectors)
+
+
+embedding_0 = np.array(index.reconstruct_n(0,1).astype('float32'))
+print(embedding_0)
+
+faiss.write_index(index, "f_index")
+
