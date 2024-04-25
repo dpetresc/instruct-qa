@@ -5,6 +5,7 @@ from instruct_qa.generation.utils import load_model
 from instruct_qa.response_runner import ResponseRunner
 from sentence_transformers import SentenceTransformer
 from transformers import DPRQuestionEncoder, DPRQuestionEncoderTokenizer, DPRContextEncoder, DPRContextEncoderTokenizer, DPRReader, DPRReaderTokenizer
+import faiss
 
 import numpy as np
 
@@ -31,7 +32,7 @@ def running(loading_cached):
     # "index": index,
 
     print(len(collection.passages))
-    print(collection.passages[0]['text'])
+    #print(collection.passages[0]['text'])
 
     # 'facebook/dpr-ctx_encoder-single-nq-base' is the DPR context encoder model trained on NQ alone
     # 'facebook/dpr-ctx_encoder-multiset-base' is the DPR context encoder model trained on the multiset/hybrid dataset defined in the paper. It includes Natural Questions, TriviaQA, WebQuestions and CuratedTREC
@@ -45,27 +46,82 @@ def running(loading_cached):
 
     # Convert the query_embedding to FAISS compatible format (numpy array, float32)
     # 768
-    print(len(query_embedding))
-    print(query_embedding/np.linalg.norm(query_embedding))
+    #print(len(query_embedding))
+    #print(query_embedding/np.linalg.norm(query_embedding))
     query_embedding_np = np.array([query_embedding]).astype('float32')
     aux_dim = np.zeros(1, dtype="float32")
     query_embedding_np = np.hstack((query_embedding_np, aux_dim.reshape(-1, 1)))
-    print(len(query_embedding_np[0]))
-    print(query_embedding_np)
+    #print(len(query_embedding_np[0]))
+    #print(query_embedding_np)
 
     print("HERE")
-    print(index.index.search(query_embedding_np, k=1))
+    #print(index.index.search(query_embedding_np, k=1))
     #print(index.index.search_and_reconstruct(query_embedding_np, k=1))
     # same as index.index.reconstruct_n(start_ix, end_ix)
     embedding_0 = np.array(index.get_embeddings(0,1)).astype('float32')
-    print(embedding_0)
+    #print(embedding_0)
     
     # 769
-    print(len(embedding_0[0]))
+    # 768 => -1
+    #print(len(embedding_0[0][:-1]))
+
+    """ vectors = np.array([])
+
+    for i in range(len(collection.passages)):
+        #print(np.array(index.get_embeddings(i,1)).astype('float32')[0][:-1])
+        #print(np.array(index.get_embeddings(i,1)).astype('float32'))
+        n_v = np.array(index.get_embeddings(i,1)).astype('float32')[0][:-1]
+        if len(vectors) == 0:
+            vectors = np.array([n_v])
+        else:
+            vectors = np.vstack([vectors, n_v])
+        if i >= 1:
+            #print(len(vectors[0]))
+            print(vectors[:])
+            break
+    
+    print(len(vectors)) """
+
+
+    vectors = index.get_embeddings(0, len(collection.passages))
+    #print(vectors[0])
+    #print(vectors[0][-1])
+
+    # Exclude the last element of each vector
+    pure_vectors = vectors[:, :-1]
+
+    phi = 0
+    for i, doc_vector in enumerate(pure_vectors):
+        norms = (doc_vector ** 2).sum()
+        phi = max(phi, norms)
+
+    print(phi)
+
+    for i, v_ in enumerate(pure_vectors):
+        #v_ = pure_vectors[i]
+
+        norm = (v_ ** 2).sum()
+        aux_dim = np.sqrt(phi - norm)
+
+        if aux_dim != vectors[i][-1]:
+            print("HERE !!! ", i)
+
+        #if i > 1:
+        #    print(aux_dim)
+        #    print(vectors[i][-1])
+        #    break
+    
+    print("FINISHED VERIF")
+
+        #print(aux_dim)
+        #hsnw_v = np.hstack((v_, aux_dim))
+        #print(hsnw_v)
+    
+
     #print(np.linalg.norm(query_embedding_np-embedding_0))
     # => FAISS uses the squared L2 distance
-    squared_distance_manual = np.sum(np.square(query_embedding_np - embedding_0))
-    print("Squared L2 distance manually calculated:", squared_distance_manual)
+    #squared_distance_manual = np.sum(np.square(query_embedding_np - embedding_0))
+    #print("Squared L2 distance manually calculated:", squared_distance_manual)
 
     #print(help(index.index))
     # 1 The metric type 1 specifically refers to the L2 distance, also known as Euclidean distance.
