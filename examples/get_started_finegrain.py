@@ -6,8 +6,52 @@ from instruct_qa.response_runner import ResponseRunner
 from sentence_transformers import SentenceTransformer
 from transformers import DPRQuestionEncoder, DPRQuestionEncoderTokenizer, DPRContextEncoder, DPRContextEncoderTokenizer, DPRReader, DPRReaderTokenizer
 import faiss
-
+import cupy as cp
 import numpy as np
+
+import subprocess
+import re
+
+
+from cuvs.neighbors import cagra
+
+
+from pylibraft.common import DeviceResources
+from pylibraft.neighbors import cagra as pylibraft_cagra
+from pylibraft.common import device_ndarray
+from pylibraft.test.ann_utils import calc_recall, generate_data
+
+import pytest
+
+
+import os
+import time
+import shutil
+
+def _get_gpu_stats(gpu_id):
+    """Run nvidia-smi to get the gpu stats without continuous monitoring."""
+    gpu_query = ",".join(["utilization.gpu", "memory.used", "memory.total"])
+    result = subprocess.run(
+        [shutil.which('nvidia-smi'), f'--query-gpu={gpu_query}', '--format=csv,noheader,nounits', f'--id={gpu_id}'],
+        encoding="utf-8",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+
+    if result.returncode != 0:
+        print(f"Error running nvidia-smi: {result.stderr}")
+        return []
+
+    def _to_float(x: str) -> float:
+        try:
+            return float(x)
+        except ValueError:
+            return 0.
+
+    stats = result.stdout.strip().split(os.linesep)
+    stats = [[_to_float(x) for x in s.split(', ')] for s in stats]
+    return stats
+
 
 def loading():
     collection = load_collection("dpr_wiki_collection")
@@ -23,109 +67,70 @@ def loading():
     return collection, index, retriever, model, prompt_template
 
 def running(loading_cached):
+    #dataset = generate_data((10000, 10), np.float32)
+    #dataset_device = device_ndarray(dataset)
+    #build_params = pylibraft_cagra.IndexParams(
+    #    metric="sqeuclidean",
+    #    intermediate_graph_degree=128,
+    #    graph_degree=64,
+    #    build_algo="ivf_pq",
+    #)
+    #index = pylibraft_cagra.build(build_params, dataset_device)
+
+    #dataset_1 = dataset[: 10000 // 2, :]
+    #dataset_2 = dataset[10000 // 2 :, :]
+    #indices_1 = np.arange(10000 // 2, dtype=np.uint32)
+    #indices_2 = np.arange(10000 // 2, 10000, dtype=np.uint32)
+
+    #dataset_1_device = device_ndarray(dataset_1)
+    #dataset_2_device = device_ndarray(dataset_2)
+    #indices_1_device = device_ndarray(indices_1)
+    #indices_2_device = device_ndarray(indices_2)
+    #index = pylibraft_cagra.extend(index, dataset_1_device, indices_1_device)
+    #index = pylibraft_cagra.extend(index, dataset_2_device, indices_2_device)
+
+
     collection, index, retriever, model, prompt_template = loading_cached
 
-    # "id": sample_id,
-    # "text": passage,
-    # "title": title,
-    # "sub_title": sub_title,
-    # "index": index,
+    vectors = index.get_embeddings(0, int(len(collection.passages)/200))
 
-    print(len(collection.passages))
-    #print(collection.passages[0]['text'])
+    # 21015324 => 64,643,137,024 bytes
+    # 700510 => 8 minutes
+    # 350255 => 3.45 minutes
+    # 105076 => 1 minute, 27266MiB (pas bcp plus pour build l'index)
 
-    # 'facebook/dpr-ctx_encoder-single-nq-base' is the DPR context encoder model trained on NQ alone
-    # 'facebook/dpr-ctx_encoder-multiset-base' is the DPR context encoder model trained on the multiset/hybrid dataset defined in the paper. It includes Natural Questions, TriviaQA, WebQuestions and CuratedTREC
-    query_model = SentenceTransformer("facebook-dpr-question_encoder-multiset-base")
-    #query_model = SentenceTransformer("facebook-dpr-question_encoder-single-nq-base")
-    #query_model = SentenceTransformer("facebook-dpr-ctx_encoder-single-nq-base")
-    #query_model = SentenceTransformer("facebook-dpr-ctx_encoder-multiset-base")
+    #print(help(cagra))
+    #print(help(pylibraft_cagra))
 
-    # Encode the target passage (ensure it's normalized and preprocessed as needed)
-    query_embedding = query_model.encode(collection.passages[0]['text'])
+    print("Nb vectors: ", len(vectors))
 
-    # Convert the query_embedding to FAISS compatible format (numpy array, float32)
-    # 768
-    #print(len(query_embedding))
-    #print(query_embedding/np.linalg.norm(query_embedding))
-    query_embedding_np = np.array([query_embedding]).astype('float32')
-    aux_dim = np.zeros(1, dtype="float32")
-    query_embedding_np = np.hstack((query_embedding_np, aux_dim.reshape(-1, 1)))
-    #print(len(query_embedding_np[0]))
-    #print(query_embedding_np)
+    vectors_gpu = cp.asarray(vectors)
 
-    print("HERE")
-    #print(index.index.search(query_embedding_np, k=1))
-    #print(index.index.search_and_reconstruct(query_embedding_np, k=1))
-    # same as index.index.reconstruct_n(start_ix, end_ix)
-    embedding_0 = np.array(index.get_embeddings(0,1)).astype('float32')
-    #print(embedding_0)
+    print(f"GPU Utilization before training: {_get_gpu_stats(0)[0][1]}")
+
+    resources = DeviceResources()
+
+    build_params = cagra.IndexParams(
+        metric="euclidean",
+        #intermediate_graph_degree=intermediate_graph_degree,
+        #graph_degree=graph_degree,
+        #build_algo=build_algo,
+    )
     
-    # 769
-    # 768 => -1
-    #print(len(embedding_0[0][:-1]))
+    start = time.time()
 
-    """ vectors = np.array([])
+    index = cagra.build_index(build_params, vectors_gpu)
+    resources.sync()
+    end = time.time()
+    print("Seconds: ", end - start)
 
-    for i in range(len(collection.passages)):
-        #print(np.array(index.get_embeddings(i,1)).astype('float32')[0][:-1])
-        #print(np.array(index.get_embeddings(i,1)).astype('float32'))
-        n_v = np.array(index.get_embeddings(i,1)).astype('float32')[0][:-1]
-        if len(vectors) == 0:
-            vectors = np.array([n_v])
-        else:
-            vectors = np.vstack([vectors, n_v])
-        if i >= 1:
-            #print(len(vectors[0]))
-            print(vectors[:])
-            break
-    
-    print(len(vectors)) """
+    print(f"GPU Utilization after training: {_get_gpu_stats(0)[0][1]}")
 
+    #index_filepath = os.path.join("data/nq/index/cagra", "cagra.bin")
+    #cagra.save(index_filepath, index) 
+    #loaded_index = cagra.load(index_filepath)
+    resources.sync()
 
-    vectors = index.get_embeddings(0, len(collection.passages))
-    #print(vectors[0])
-    #print(vectors[0][-1])
-
-    # Exclude the last element of each vector
-    pure_vectors = vectors[:, :-1]
-
-    phi = 0
-    for i, doc_vector in enumerate(pure_vectors):
-        norms = (doc_vector ** 2).sum()
-        phi = max(phi, norms)
-
-    print(phi)
-
-    for i, v_ in enumerate(pure_vectors):
-        #v_ = pure_vectors[i]
-
-        norm = (v_ ** 2).sum()
-        aux_dim = np.sqrt(phi - norm)
-
-        if aux_dim != vectors[i][-1]:
-            print("HERE !!! ", i)
-
-        #if i > 1:
-        #    print(aux_dim)
-        #    print(vectors[i][-1])
-        #    break
-    
-    print("FINISHED VERIF")
-
-        #print(aux_dim)
-        #hsnw_v = np.hstack((v_, aux_dim))
-        #print(hsnw_v)
-    
-
-    #print(np.linalg.norm(query_embedding_np-embedding_0))
-    # => FAISS uses the squared L2 distance
-    #squared_distance_manual = np.sum(np.square(query_embedding_np - embedding_0))
-    #print("Squared L2 distance manually calculated:", squared_distance_manual)
-
-    #print(help(index.index))
-    # 1 The metric type 1 specifically refers to the L2 distance, also known as Euclidean distance.
-    # print(index.index.metric_type)
 
     """ queries = ["what is haleys comet"]
 
