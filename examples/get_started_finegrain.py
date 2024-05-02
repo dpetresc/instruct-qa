@@ -26,6 +26,8 @@ import os
 import time
 import shutil
 
+import gc
+
 def _get_gpu_stats(gpu_id):
     """Run nvidia-smi to get the gpu stats without continuous monitoring."""
     gpu_query = ",".join(["utilization.gpu", "memory.used", "memory.total"])
@@ -54,17 +56,19 @@ def _get_gpu_stats(gpu_id):
 def loading():
     collection = load_collection("dpr_wiki_collection")
     index = load_index("dpr-nq-multi-hnsw")
-    print("loading retriever")
-    retriever = load_retriever("facebook-dpr-question_encoder-multiset-base", index)
+    
+    #print("loading retriever")
+    #retriever = load_retriever("facebook-dpr-question_encoder-multiset-base", index)
 
     #path_to_llama = "/home/dpetresc/.cache/huggingface/hub/models--meta-llama--Llama-2-7b-chat-hf/snapshots/c1b0db933684edbfe29a06fa47eb19cc48025e93/"
     #model = load_model("meta-llama/Llama-2-7b-chat-hf", weights_path=path_to_llama)
-    print("loading model")
-    model = load_model("flan-t5-xxl")
-    print("loading template")
-    prompt_template = load_template("qa")
+    #print("loading model")
+    #model = load_model("flan-t5-xxl")
+    #print("loading template")
+    #prompt_template = load_template("qa")
 
-    return collection, index, retriever, model, prompt_template
+    #return collection, index, retriever, model, prompt_template
+    return collection, index, None, None, None
 
 def running(loading_cached):
     #dataset = generate_data((10000, 10), np.float32)
@@ -89,11 +93,15 @@ def running(loading_cached):
     #index = pylibraft_cagra.extend(index, dataset_1_device, indices_1_device)
     #index = pylibraft_cagra.extend(index, dataset_2_device, indices_2_device)
 
+    collection, index, _, _, _ = loading_cached
 
-    collection, index, retriever, model, prompt_template = loading_cached
+    cp.get_default_memory_pool().free_all_blocks()
+    gc.collect()
 
-    vectors = index.get_embeddings(0, 100)
-    #vectors = index.get_embeddings(0, int(len(collection.passages)/300))
+    #collection, index, retriever, model, prompt_template = loading_cached
+
+    #vectors = index.get_embeddings(0, 100)
+    vectors = index.get_embeddings(0, len(collection.passages))
 
     # 21015324 => 64,643,137,024 bytes
     # 700510 => 8 minutes
