@@ -91,8 +91,8 @@ gc.collect()
 index = load_index("dpr-nq-multi-hnsw")
 
 #batch_size = 1000 # Adjust batch size based on your system's memory capacity
-#total_vectors_count = 21015324
-total_vectors_count = 100
+total_vectors_count = 21015324
+#total_vectors_count = 100
 #index_filepath = os.path.join("data/nq/index/cagra", "vectors.pickle")
 #dump_vectors_in_batches(index, batch_size, total_vectors_count, index_filepath)
 #vectors = load_vectors_in_batches(index_filepath)
