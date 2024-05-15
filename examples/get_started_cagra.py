@@ -88,22 +88,29 @@ cp.get_default_memory_pool().free_all_blocks()
 gc.collect()
 
 #collection = load_collection("dpr_wiki_collection")
-index = load_index("dpr-nq-multi-hnsw")
+#index = load_index("dpr-nq-multi-hnsw")
 
 #batch_size = 1000 # Adjust batch size based on your system's memory capacity
-total_vectors_count = 21015324
+#total_vectors_count = 21015324
 #total_vectors_count = 100
 #index_filepath = os.path.join("data/nq/index/cagra", "vectors.pickle")
 #dump_vectors_in_batches(index, batch_size, total_vectors_count, index_filepath)
 #vectors = load_vectors_in_batches(index_filepath)
 
-vectors = index.get_embeddings(0, total_vectors_count)
+#vectors = index.get_embeddings(0, total_vectors_count)
 #print("Len collection ", 21015324)
 #vectors = index.get_embeddings(0, 21015324)
-index_filepath = os.path.join("data/nq/index/cagra", "vectors.pickle")
-pickle.dump(vectors, open(index_filepath, 'wb'))
-print("DUMPED")
-#vectors = pickle.load(open(index_filepath, 'rb'))
+
+
+
+#index = load_index("dpr-nq-multi-hnsw")
+#total_vectors_count = 21015324
+#vectors = index.get_embeddings(0, total_vectors_count)
+#index_filepath = os.path.join("data/nq/index/cagra", "vectors.pickle")
+#pickle.dump(vectors, open(index_filepath, 'wb'))
+#print("DUMPED")
+vectors = pickle.load(open(index_filepath, 'rb'))
+print("LOADED VECTORS")
 
 print("Nb vectors: ", len(vectors))
 vectors_gpu = cp.asarray(vectors)
