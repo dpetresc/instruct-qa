@@ -129,7 +129,7 @@ build_params = pylibraft_cagra.IndexParams(
 start = time.time()
 
 #index = pylibraft_cagra.build_index(build_params, vectors_gpu)
-index = pylibraft_cagra.build(build_params, vectors_gpu)
+index = pylibraft_cagra.build(build_params, vectors_gpu, handle=resources)
 resources.sync()
 end = time.time()
 print("Seconds: ", end - start)
