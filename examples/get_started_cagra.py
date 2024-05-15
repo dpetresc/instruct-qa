@@ -106,7 +106,7 @@ gc.collect()
 #index = load_index("dpr-nq-multi-hnsw")
 #total_vectors_count = 21015324
 #vectors = index.get_embeddings(0, total_vectors_count)
-#index_filepath = os.path.join("data/nq/index/cagra", "vectors.pickle")
+index_filepath = os.path.join("data/nq/index/cagra", "vectors.pickle")
 #pickle.dump(vectors, open(index_filepath, 'wb'))
 #print("DUMPED")
 vectors = pickle.load(open(index_filepath, 'rb'))
