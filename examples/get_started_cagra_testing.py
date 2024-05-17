@@ -10,9 +10,11 @@ from pylibraft.common import DeviceResources
 from pylibraft.neighbors import cagra as pylibraft_cagra
 import logging
 
+nb_vectors_build = 1000000
+
 # Setup logging configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
-                    handlers=[logging.FileHandler(os.path.join("data/nq/index/cagra", "output_cagra_build.log")), logging.StreamHandler()])
+                    handlers=[logging.FileHandler(os.path.join("data/nq/index/cagra", "output_cagra_build_"+str(nb_vectors_build)+".log")), logging.StreamHandler()])
 
 class GpuMemoryMonitor(threading.Thread):
     def __init__(self, gpu_id=0):
@@ -67,7 +69,7 @@ def main():
     logging.info("LOADED VECTORS")
 
     logging.info("Nb vectors: %d", len(vectors))
-    vectors_gpu = cp.asarray(vectors[:10000000])
+    vectors_gpu = cp.asarray(vectors[:nb_vectors_build])
 
     logging.info("GPU Utilization before training: %f MiB", _get_gpu_stats(0)[0][1])
 
@@ -86,7 +88,7 @@ def main():
 
     logging.info("GPU Utilization after training: %f MiB", _get_gpu_stats(0)[0][1])
 
-    index_filepath = os.path.join("data/nq/index/cagra", "cagra.bin")
+    index_filepath = os.path.join("data/nq/index/cagra", "cagra_"+str(nb_vectors_build)+".bin")
     pylibraft_cagra.save(index_filepath, index)
     resources.sync()
 

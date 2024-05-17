@@ -106,45 +106,58 @@ gc.collect()
 #index = load_index("dpr-nq-multi-hnsw")
 #total_vectors_count = 21015324
 #vectors = index.get_embeddings(0, total_vectors_count)
-index_filepath = os.path.join("data/nq/index/cagra", "vectors.pickle")
+#index_filepath = os.path.join("data/nq/index/cagra", "vectors.pickle")
 #pickle.dump(vectors, open(index_filepath, 'wb'))
 #print("DUMPED")
-vectors = pickle.load(open(index_filepath, 'rb'))
-print("LOADED VECTORS")
+#vectors = pickle.load(open(index_filepath, 'rb'))
+#print("LOADED VECTORS")
 
-print("Nb vectors: ", len(vectors))
-vectors_gpu = cp.asarray(vectors)
+#print("Nb vectors: ", len(vectors))
+#vectors_gpu = cp.asarray(vectors)
 
-print(f"GPU Utilization before training: {_get_gpu_stats(0)[0][1]}")
+#print(f"GPU Utilization before training: {_get_gpu_stats(0)[0][1]}")
 
-resources = DeviceResources()
+#resources = DeviceResources()
 
-build_params = pylibraft_cagra.IndexParams(
-    metric="euclidean",
-    #intermediate_graph_degree=intermediate_graph_degree,
-    #graph_degree=graph_degree,
-    #build_algo=build_algo,
-)
+#build_params = pylibraft_cagra.IndexParams(
+#    metric="euclidean",
+#    #intermediate_graph_degree=intermediate_graph_degree,
+#    #graph_degree=graph_degree,
+#    #build_algo=build_algo,
+#)
     
-start = time.time()
+#start = time.time()
 
 #index = pylibraft_cagra.build_index(build_params, vectors_gpu)
-index = pylibraft_cagra.build(build_params, vectors_gpu, handle=resources)
-resources.sync()
-end = time.time()
-print("Seconds: ", end - start)
-
-print(f"GPU Utilization after training: {_get_gpu_stats(0)[0][1]}")
-
-index_filepath = os.path.join("data/nq/index/cagra", "cagra.bin")
-pylibraft_cagra.save(index_filepath, index) 
-#loaded_index = pylibraft_cagra.load(index_filepath)
-resources.sync()
-#print(help(pylibraft_cagra.search))
-#distances, neighbors = pylibraft_cagra.search(pylibraft_cagra.SearchParams(),
-#                                 loaded_index, vectors_gpu,
-#                                 1, handle=resources)
+#index = pylibraft_cagra.build(build_params, vectors_gpu, handle=resources)
 #resources.sync()
-#distances = cp.asarray(distances)
-#neighbors = cp.asarray(neighbors)
-#print(distances, neighbors)
+#end = time.time()
+#print("Seconds: ", end - start)
+
+#print(f"GPU Utilization after training: {_get_gpu_stats(0)[0][1]}")
+
+
+
+# Load vectors from pickle file
+nb_vectors_build = 10000
+index_filepath = os.path.join("data/nq/index/cagra", "vectors.pickle")
+vectors = pickle.load(open(index_filepath, 'rb'))
+#logging.info("LOADED VECTORS")
+
+#logging.info("Nb vectors: %d", len(vectors))
+vectors_gpu = cp.asarray(vectors[:nb_vectors_build])
+
+index_filepath = os.path.join("data/nq/index/cagra", "cagra_"+str(nb_vectors_build)+".bin")
+#pylibraft_cagra.save(index_filepath, index) 
+loaded_index = pylibraft_cagra.load(index_filepath)
+#resources.sync()
+
+print(help(pylibraft_cagra.search))
+distances, neighbors = pylibraft_cagra.search(pylibraft_cagra.SearchParams(),
+                                 loaded_index, vectors_gpu,
+                                 1)
+                                 #1, handle=resources)
+#resources.sync()
+distances = cp.asarray(distances)
+neighbors = cp.asarray(neighbors)
+print(distances, neighbors)
