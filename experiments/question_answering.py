@@ -18,7 +18,7 @@ parser.add_argument(
     "--persistent_dir",
     action="store",
     type=str,
-    default=os.path.realpath(os.path.join(thisdir, "..")),
+    default=os.path.realpath(os.path.join(thisdir, "../examples/data")),
 )
 parser.add_argument(
     "--model_name",
@@ -243,6 +243,8 @@ if __name__ == "__main__":
     kwargs = {}
     if args.document_cache_dir is not None:
         kwargs['cachedir'] = args.document_cache_dir
+    else:
+        kwargs['cachedir'] = os.path.join(args.persistent_dir, 'nq/collection')
     if args.document_file_name is not None:
         kwargs['file_name'] = args.document_file_name
     document_collection = load_collection(args.document_collection_name, **kwargs)
@@ -264,6 +266,8 @@ if __name__ == "__main__":
         kwargs = {}
         if args.index_path is not None:
             kwargs['index_path'] = args.index_path
+        else:
+            kwargs['index_path'] = os.path.join(args.persistent_dir, 'nq/index/hnsw/index.dpr')
         index = load_index(args.index_name, **kwargs)
 
     retriever = None
