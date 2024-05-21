@@ -1,6 +1,6 @@
 import sys
 import pkgutil
-import get_started_split_retrieval_bis
+import get_started_split_retrieval_index as get_started_finegrain
 import importlib
 import instruct_qa
 import traceback
