@@ -37,6 +37,12 @@ import traceback
 
 import pickle
 
+import logging
+
+nb_vectors_build = 10000
+# Setup logging configuration
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[logging.FileHandler(os.path.join("data/nq/index/hnsw", "output_hnsw_build_"+str(nb_vectors_build)+".log")), logging.StreamHandler()])
 
 def _get_gpu_stats(gpu_id):
     """Run nvidia-smi to get the gpu stats without continuous monitoring."""
@@ -85,10 +91,6 @@ def load_vectors_in_batches(file_path):
     return vectors
 
 
-nb_vectors_build = 10000
-# Setup logging configuration
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
-                    handlers=[logging.FileHandler(os.path.join("data/nq/index/hnsw", "output_hnsw_build_"+str(nb_vectors_build)+".log")), logging.StreamHandler()])
 
 #collection = load_collection("dpr_wiki_collection")
 #index = load_index("dpr-nq-multi-hnsw")
@@ -127,28 +129,28 @@ index.hnsw.max_level = 2
 index.add(vectors)
 
 
-print(index)
-#print(help(index.index))
-print(index.index.is_trained)
-print(index.index.metric_arg)
-print(index.index.metric_type)
-print(index.index.ntotal)
-
-print()
-print(index.index.hnsw.assign_probas)
-print(index.index.hnsw.check_relative_distance)
-print(index.index.hnsw.cum_nneighbor_per_level)
-print(index.index.hnsw.efConstruction)
-print(index.index.hnsw.efSearch)
-print(index.index.hnsw.entry_point)
-print(index.index.hnsw.levels)
-print(index.index.hnsw.max_level)
-print(index.index.hnsw.neighbors)
-print(index.index.hnsw.offsets)
-print(index.index.hnsw.rng)
-print(index.index.hnsw.search_bounded_queue)
-print(index.index.hnsw.upper_beam)
-#print(help(index.index.hnsw))
+#print(index)
+#print(help(index))
+#print(index.is_trained)
+#print(index.metric_arg)
+#print(index.metric_type)
+#print(index.ntotal)
+#
+#print()
+#print(index.hnsw.assign_probas)
+#print(index.hnsw.check_relative_distance)
+#print(index.hnsw.cum_nneighbor_per_level)
+#print(index.hnsw.efConstruction)
+#print(index.hnsw.efSearch)
+#print(index.hnsw.entry_point)
+#print(index.hnsw.levels)
+#print(index.hnsw.max_level)
+#print(index.hnsw.neighbors)
+#print(index.hnsw.offsets)
+#print(index.hnsw.rng)
+#print(index.hnsw.search_bounded_queue)
+#print(index.hnsw.upper_beam)
+#print(help(index.hnsw))
 
 end = time.time()
 logging.info("Seconds: %f", end - start)
