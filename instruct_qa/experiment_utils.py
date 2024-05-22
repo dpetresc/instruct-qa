@@ -8,7 +8,7 @@ from tqdm.auto import tqdm
 from tqdm.utils import CallbackIOWrapper
 
 
-def generate_experiment_id(name, split, collection_name, model_name, retriever_name, prompt_type, top_p, temperature, seed):
+def generate_experiment_id(name, split, collection_name, model_name, retriever_name, prompt_type, top_p, temperature, seed, index_name):
     """
     Generates a unique experiment identifier.
 
@@ -28,7 +28,7 @@ def generate_experiment_id(name, split, collection_name, model_name, retriever_n
     """
     experiment_id = name + "_" + split
 
-    for arg in [collection_name, model_name, retriever_name, top_p, temperature, seed]:
+    for arg in [collection_name, model_name, retriever_name, top_p, temperature, seed, index_name]:
         if isinstance(arg, str):
             arg = arg.replace("/", "_")
 
@@ -46,6 +46,8 @@ def generate_experiment_id(name, split, collection_name, model_name, retriever_n
         experiment_id += f"_t-{temperature}"
     if isinstance(seed, int):
         experiment_id += f"_s-{seed}"
+    if isinstance(index_name, int):
+        experiment_id += f"_i-{index_name}"
 
     return experiment_id
 
@@ -68,6 +70,7 @@ def parse_experiment_id(experiment_id):
     regex += "_p-(\d+\.\d+)"
     regex += "_t-(\d+\.\d+)"
     regex += "_s-(\d+)"
+    regex += "_i-([A-Z-a-z0-9-_.]+)"
 
     parts = re.match(regex, experiment_id).groups()
 
@@ -80,6 +83,7 @@ def parse_experiment_id(experiment_id):
         "top_p": float(parts[5]),
         "temperature": float(parts[6]),
         "seed": int(parts[7]),
+        "index_name": parts[8],
     }
 
     return result

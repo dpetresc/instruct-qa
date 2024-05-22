@@ -155,11 +155,11 @@ class ResponseRunner:
                     for x in retrieved_ctx_ids
                 ]
             else:
-                print("QUERIES ", queries)
-                print("K ", self._k)
+                #print("QUERIES ", queries)
+                #print("K ", self._k)
                 r_dict = self._retriever.retrieve(queries, k=self._k)
                 retrieved_indices = r_dict["indices"]
-                print("INDICES ", retrieved_indices, type(retrieved_indices))
+                #print("INDICES ", retrieved_indices, type(retrieved_indices))
 
             monitor.stop()
             logging.info(f"Retrieval CPU max usage: {monitor.cpu_max}%")

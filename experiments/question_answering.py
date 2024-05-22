@@ -223,6 +223,7 @@ if __name__ == "__main__":
         top_p=args.top_p,
         temperature=args.temperature,
         seed=args.seed,
+        index_name=args.index_name,
     )
 
      # Create a logger that logs to both the console and a file.
