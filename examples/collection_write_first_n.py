@@ -24,7 +24,7 @@ def export_first_n_passages(input_file: str, output_file: str, n: int, id_col: i
                 # Write header if present
                 writer.writerow(row)
                 continue
-            if i >= n:
+            if i > n:
                 break
             writer.writerow(row)
 

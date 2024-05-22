@@ -36,8 +36,11 @@ class ResourceMonitor(threading.Thread):
         self.cpu_value_max = 0
         self.ram_value_max = 0
         self.running = True
+        self.start_time = None
+        self.end_time = None
 
     def run(self):
+        self.start_time = time.time()
         while self.running:
             cpu_percent = psutil.cpu_percent(interval=1)
             virtual_memory = psutil.virtual_memory()
@@ -53,6 +56,7 @@ class ResourceMonitor(threading.Thread):
             self.gpu_max = [max(current, new) for current, new in zip(self.gpu_max, gpu_usage[0])]
 
             time.sleep(1)
+        self.end_time = time.time()
 
     def stop(self):
         self.running = False
@@ -64,7 +68,13 @@ class ResourceMonitor(threading.Thread):
         self.gpu_max = [0, 0, 0]
         self.cpu_value_max = 0
         self.ram_value_max = 0
+        self.start_time = None
+        self.end_time = None
 
+    def get_runtime(self):
+        if self.start_time and self.end_time:
+            return self.end_time - self.start_time
+        return None
 
 class ResponseRunner:
     def __init__(
@@ -157,11 +167,16 @@ class ResponseRunner:
             else:
                 #print("QUERIES ", queries)
                 #print("K ", self._k)
+                start = time.time()
                 r_dict = self._retriever.retrieve(queries, k=self._k)
                 retrieved_indices = r_dict["indices"]
+                end = time.time()
+                logging.info("Retrieval total execution time: %f", end - start)
                 #print("INDICES ", retrieved_indices, type(retrieved_indices))
 
             monitor.stop()
+            runtime = monitor.get_runtime()
+            #logging.info(f"Retrieval monitoring runtime: {runtime:.2f} seconds")
             logging.info(f"Retrieval CPU max usage: {monitor.cpu_max}%")
             #logging.info(f"Retrieval Max CPU usage value: {monitor.cpu_value_max}")
             logging.info(f"Retrieval RAM max usage: {monitor.ram_max}%")
@@ -171,7 +186,7 @@ class ResponseRunner:
             # Reset the monitor for the next phase
             monitor.reset()
 
-
+            print(len(self._document_collection.passages))
             # Get the document texts.
             passages = [
                 self._document_collection.get_passages_from_indices(indices)
@@ -188,11 +203,16 @@ class ResponseRunner:
             
             monitor = ResourceMonitor()
             monitor.start()
-
+            
+            start = time.time()
             responses = self._model(prompts)
+            end = time.time()
+            logging.info("Generation total execution time: %f", end - start)
 
             # Stop resource monitoring
             monitor.stop()
+            runtime = monitor.get_runtime()
+            #logging.info(f"Generation monitoring runtime: {runtime:.2f} seconds")
             logging.info(f"Generation CPU max usage: {monitor.cpu_max}%")
             #logging.info(f"Generation Max CPU usage value: {monitor.cpu_value_max}")
             logging.info(f"Generation RAM max usage: {monitor.ram_max}%")
