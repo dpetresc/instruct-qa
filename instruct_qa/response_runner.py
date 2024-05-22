@@ -33,6 +33,8 @@ class ResourceMonitor(threading.Thread):
         self.cpu_max = 0
         self.ram_max = 0
         self.gpu_max = [0, 0, 0]  # Utilization, Memory Used, Memory Total
+        self.cpu_value_max = 0
+        self.ram_value_max = 0
         self.running = True
 
     def run(self):
@@ -40,10 +42,14 @@ class ResourceMonitor(threading.Thread):
             cpu_percent = psutil.cpu_percent(interval=1)
             virtual_memory = psutil.virtual_memory()
             ram_percent = virtual_memory.percent
+            cpu_value = psutil.cpu_times_percent(interval=1, percpu=False)
+            ram_value = virtual_memory.used / (1024 ** 2)  # Convert bytes to MB
             gpu_usage = get_gpu_usage()
 
             self.cpu_max = max(self.cpu_max, cpu_percent)
             self.ram_max = max(self.ram_max, ram_percent)
+            self.cpu_value_max = max(self.cpu_value_max, cpu_value.user + cpu_value.system)
+            self.ram_value_max = max(self.ram_value_max, ram_value)
             self.gpu_max = [max(current, new) for current, new in zip(self.gpu_max, gpu_usage[0])]
 
             time.sleep(1)
@@ -56,6 +62,8 @@ class ResourceMonitor(threading.Thread):
         self.cpu_max = 0
         self.ram_max = 0
         self.gpu_max = [0, 0, 0]
+        self.cpu_value_max = 0
+        self.ram_value_max = 0
 
 
 class ResponseRunner:
@@ -118,6 +126,8 @@ class ResponseRunner:
 
         results = []
 
+        #print("BATCHES :", batches)
+
         for i, batch in enumerate(
             tqdm(batches, desc="Collecting responses", leave=False)
         ):
@@ -145,17 +155,21 @@ class ResponseRunner:
                     for x in retrieved_ctx_ids
                 ]
             else:
+                print("QUERIES ", queries)
+                print("K ", self._k)
                 r_dict = self._retriever.retrieve(queries, k=self._k)
                 retrieved_indices = r_dict["indices"]
+                print("INDICES ", retrieved_indices, type(retrieved_indices))
 
             monitor.stop()
             logging.info(f"Retrieval CPU max usage: {monitor.cpu_max}%")
+            #logging.info(f"Retrieval Max CPU usage value: {monitor.cpu_value_max}")
             logging.info(f"Retrieval RAM max usage: {monitor.ram_max}%")
+            logging.info(f"Retrieval Max RAM usage value: {monitor.ram_value_max} MB")
             logging.info(f"Retrieval GPU max usage: {monitor.gpu_max}")
 
             # Reset the monitor for the next phase
             monitor.reset()
-
 
 
             # Get the document texts.
@@ -172,6 +186,7 @@ class ResponseRunner:
                 for sample, p in zip(batch, passages)
             ]
             
+            monitor = ResourceMonitor()
             monitor.start()
 
             responses = self._model(prompts)
@@ -179,7 +194,9 @@ class ResponseRunner:
             # Stop resource monitoring
             monitor.stop()
             logging.info(f"Generation CPU max usage: {monitor.cpu_max}%")
+            #logging.info(f"Generation Max CPU usage value: {monitor.cpu_value_max}")
             logging.info(f"Generation RAM max usage: {monitor.ram_max}%")
+            logging.info(f"Generation Max RAM usage value: {monitor.ram_value_max} MB")
             logging.info(f"Generation GPU max usage: {monitor.gpu_max}")
 
             if self._post_process_response:

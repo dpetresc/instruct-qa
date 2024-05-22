@@ -327,8 +327,10 @@ class IndexCagra(IndexBase):
                                  self.index, vectors_gpu, k)
 
         # TODO on GPU...
-        scores = cp.asarray(scores)
-        indices = cp.asarray(indices)
+        #scores = cp.asarray(scores)
+        #indices = cp.asarray(indices)
+        scores = cp.asnumpy(scores)
+        indices = cp.asnumpy(indices)
 
         return {"scores": scores, "indices": indices}
 
