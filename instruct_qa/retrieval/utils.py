@@ -3,7 +3,7 @@ from typing import Dict, List
 
 import instruct_qa.experiment_utils as utils
 from instruct_qa.retrieval import RetrieverFromFile, SentenceTransformerRetriever
-from instruct_qa.retrieval.index import IndexFaissFlatIP, IndexFaissHNSW
+from instruct_qa.retrieval.index import IndexFaissFlatIP, IndexFaissHNSW, IndexCagra
 
 INDEX_NAME_TO_PATH_URL = {
     "dpr-nq-multi-hnsw": {
@@ -13,6 +13,10 @@ INDEX_NAME_TO_PATH_URL = {
     "dpr-topiocqa-single-hnsw": {
         "url": "https://instruct-qa.s3.us-east-2.amazonaws.com/indexes/dpr/topiocqa/single/hnsw/index.dpr",
         "path": "data/topiocqa/index/hnsw/index.dpr",
+    },
+    "dpr-nq-cagra": {
+        "url": "",
+        "path": "data/nq/index/cagra/index.dpr",
     },
 }
 
@@ -242,6 +246,11 @@ def load_index(index_name, **kwargs):
     print("Loading index...")
     if "hnsw" in index_name:
         return IndexFaissHNSW.load(
+            directory=os.path.dirname(index_path),
+            filename=os.path.basename(index_path),
+        )
+    elif "cagra" in index_name:
+        return IndexCagra.load(
             directory=os.path.dirname(index_path),
             filename=os.path.basename(index_path),
         )

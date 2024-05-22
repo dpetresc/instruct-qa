@@ -5,6 +5,8 @@ import numpy as np
 import requests
 import re
 
+import logging
+
 from instruct_qa.retrieval.utils import dict_values_list_to_numpy
 from instruct_qa.dataset.qa import GenericQADataset
 from tqdm import tqdm

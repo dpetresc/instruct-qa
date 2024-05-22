@@ -3,6 +3,8 @@ import logging
 from math import inf
 import os
 
+import torch
+
 from instruct_qa.prompt.utils import load_template
 from instruct_qa.retrieval import RetrieverFromFile
 from instruct_qa.retrieval.utils import load_retriever, load_index
@@ -11,6 +13,8 @@ from instruct_qa.collections.utils import load_collection
 from instruct_qa.generation.utils import load_model
 from instruct_qa.dataset.utils import load_dataset
 from instruct_qa.experiment_utils import log_commandline_args, generate_experiment_id
+
+import time
 
 thisdir = os.path.dirname(os.path.realpath(__file__))
 parser = argparse.ArgumentParser(description="Evaluates a model against a QA dataset.")
@@ -208,14 +212,7 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-
-    # Create a logger that logs to the console.
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(os.path.basename(__file__))
-
-    logger.info("Evaluating model:")
-    log_commandline_args(args, logger.info)
-
+    
     experiment_id = generate_experiment_id(
         name=args.dataset_name,
         split=args.dataset_split,
@@ -227,6 +224,23 @@ if __name__ == "__main__":
         temperature=args.temperature,
         seed=args.seed,
     )
+
+     # Create a logger that logs to both the console and a file.
+    output_file = f"{args.persistent_dir}/results/{args.dataset_name}/response/{experiment_id}.jsonl"
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    # Create a logger that logs to the console.
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(os.path.basename(__file__))
+
+    file_handler = logging.FileHandler(output_file)
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logger.addHandler(file_handler)
+
+    logger.info("Evaluating model:")
+    log_commandline_args(args, logger.info)
+
 
     logger.info(f"Experiment ID: {experiment_id}")
     # TODO make a small dataset ?
@@ -273,7 +287,7 @@ if __name__ == "__main__":
         index = load_index(args.index_name, **kwargs)
         end = time.time()
         logging.info("Loading index time: %f", end - start)
-        logging.info("Index size: %f", index.__len__)
+        logging.info("Index size: %f", index.__len__())
 
     retriever = None
     if index is not None or args.retriever_cached_results_fp is not None:
