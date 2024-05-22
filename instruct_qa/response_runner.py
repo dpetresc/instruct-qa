@@ -100,16 +100,17 @@ class ResponseRunner:
         return self._model.post_process_response(response)
 
     def __call__(self):
-        if self._output_path and os.path.exists(self._output_path):
-            with open(self._output_path, "r") as f:
-                existing_results = [json.loads(line) for line in f.readlines()]
-            num_done = len(existing_results)
-            if num_done >= len(self._dataset):
-                print(f"Already done with {num_done} examples.")
-                return
-            if num_done > 0:
-                print(f"Skipping {num_done} examples that are already done.")
-                self._dataset.data = self._dataset.data[num_done:]
+         # TODO remove comments
+#        if self._output_path and os.path.exists(self._output_path):
+#            with open(self._output_path, "r") as f:
+#                existing_results = [json.loads(line) for line in f.readlines()]
+#            num_done = len(existing_results)
+#            if num_done >= len(self._dataset):
+#                print(f"Already done with {num_done} examples.")
+#                return
+#            if num_done > 0:
+#                print(f"Skipping {num_done} examples that are already done.")
+#                self._dataset.data = self._dataset.data[num_done:]
         batches = [
             self._dataset[i : i + self._batch_size]
             for i in range(0, len(self._dataset), self._batch_size)
