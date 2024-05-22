@@ -280,7 +280,7 @@ if __name__ == "__main__":
         logger.info("Loading index...")
         kwargs = {}
         if args.index_path is not None:
-            kwargs['index_path'] = args.index_path
+            kwargs['index_path'] = os.path.join(args.persistent_dir, args.index_path)
         else:
             kwargs['index_path'] = os.path.join(args.persistent_dir, 'nq/index/hnsw/index.dpr')
         start = time.time()
