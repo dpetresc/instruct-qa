@@ -3,6 +3,11 @@ from pathlib import Path
 import sys
 from typing import Dict, List
 
+import cupy as cp
+from pylibraft.common import DeviceResources
+from pylibraft.neighbors import cagra as pylibraft_cagra
+
+
 import numpy as np
 
 
@@ -273,6 +278,60 @@ class IndexFaissHNSW(IndexFaissFlatIP):
 
         return {"scores": scores, "indices": indices}
 
+class IndexCagra(IndexBase):
+    def __init__(self, embeddings):
+        import cupy as cp
+	    from pylibraft.common import DeviceResources
+	    from pylibraft.neighbors import cagra as pylibraft_cagra
+
+
+        self.index = embeddings
+
+    def __len__(self):
+        return self.index.size
+    
+    def get_embeddings(self, start_ix=0, end_ix=-1):
+        raise NotImplementedError(
+            "Cagra does not support retrieving embeddings."
+        )
+    
+    def save(self, directory="index", filename="cagra"):
+        import cupy as cp
+	    from pylibraft.common import DeviceResources
+	    from pylibraft.neighbors import cagra as pylibraft_cagra
+
+        directory = Path(directory)
+        directory.mkdir(parents=True, exist_ok=True)
+        pylibraft_cagra.save(str(directory / filename), self.index)
+    
+    @classmethod
+    def load(cls, directory="index", filename="cagra"):
+        import cupy as cp
+	    from pylibraft.common import DeviceResources
+	    from pylibraft.neighbors import cagra as pylibraft_cagra
+
+        directory = Path(directory)
+        index = pylibraft_cagra.load(str(directory / filename))
+        return cls(index)
+
+    def search(self, queries, k=10):
+        if not isinstance(queries, np.ndarray):
+            queries = np.array(queries)
+
+        aux_dim = np.zeros(len(queries), dtype="float32")
+        queries_vectors = np.hstack((queries, aux_dim.reshape(-1, 1)))
+        
+        vectors_gpu = cp.asarray(queries_vectors)
+
+        # distances, neighbors
+        scores, indices = pylibraft_cagra.search(pylibraft_cagra.SearchParams(),
+                                 self.index, vectors_gpu, k)
+
+        # TODO on GPU...
+        scores = cp.asarray(scores)
+        indices = cp.asarray(indices)
+
+        return {"scores": scores, "indices": indices}
 
 class IndexPyseriniBM25(IndexBase):
     def __init__(self, searcher):

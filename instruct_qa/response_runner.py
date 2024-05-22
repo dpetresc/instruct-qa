@@ -9,6 +9,52 @@ from instruct_qa.retrieval.utils import dict_values_list_to_numpy
 from instruct_qa.dataset.qa import GenericQADataset
 from tqdm import tqdm
 
+import psutil
+import subprocess
+
+import time
+
+import threading
+
+def get_gpu_usage():
+    gpu_query = "nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total --format=csv,noheader,nounits"
+    result = subprocess.run(gpu_query.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode != 0:
+        raise RuntimeError(f"Error running nvidia-smi: {result.stderr.decode()}")
+    output = result.stdout.decode().strip().split('\n')
+    gpu_usage = [list(map(float, line.split(','))) for line in output]
+    return gpu_usage
+
+class ResourceMonitor(threading.Thread):
+    def __init__(self):
+        super().__init__()
+        self.cpu_max = 0
+        self.ram_max = 0
+        self.gpu_max = [0, 0, 0]  # Utilization, Memory Used, Memory Total
+        self.running = True
+
+    def run(self):
+        while self.running:
+            cpu_percent = psutil.cpu_percent(interval=1)
+            virtual_memory = psutil.virtual_memory()
+            ram_percent = virtual_memory.percent
+            gpu_usage = get_gpu_usage()
+
+            self.cpu_max = max(self.cpu_max, cpu_percent)
+            self.ram_max = max(self.ram_max, ram_percent)
+            self.gpu_max = [max(current, new) for current, new in zip(self.gpu_max, gpu_usage[0])]
+
+            time.sleep(1)
+
+    def stop(self):
+        self.running = False
+        self.join()
+
+    def reset(self):
+        self.cpu_max = 0
+        self.ram_max = 0
+        self.gpu_max = [0, 0, 0]
+
 
 class ResponseRunner:
     def __init__(
@@ -68,9 +114,14 @@ class ResponseRunner:
         ]
 
         results = []
+
         for i, batch in enumerate(
             tqdm(batches, desc="Collecting responses", leave=False)
         ):
+            # Start resource monitoring
+            monitor = ResourceMonitor()
+            monitor.start()
+
             queries = self._dataset.get_queries(batch)
 
             if self._use_hosted_retriever:
@@ -94,6 +145,16 @@ class ResponseRunner:
                 r_dict = self._retriever.retrieve(queries, k=self._k)
                 retrieved_indices = r_dict["indices"]
 
+            monitor.stop()
+            logging.info(f"Retrieval CPU max usage: {monitor.cpu_max}%")
+            logging.info(f"Retrieval RAM max usage: {monitor.ram_max}%")
+            logging.info(f"Retrieval GPU max usage: {monitor.gpu_max}")
+
+            # Reset the monitor for the next phase
+            monitor.reset()
+
+
+
             # Get the document texts.
             passages = [
                 self._document_collection.get_passages_from_indices(indices)
@@ -107,8 +168,16 @@ class ResponseRunner:
                 )
                 for sample, p in zip(batch, passages)
             ]
+            
+            monitor.start()
 
             responses = self._model(prompts)
+
+            # Stop resource monitoring
+            monitor.stop()
+            logging.info(f"Generation CPU max usage: {monitor.cpu_max}%")
+            logging.info(f"Generation RAM max usage: {monitor.ram_max}%")
+            logging.info(f"Generation GPU max usage: {monitor.gpu_max}")
 
             if self._post_process_response:
                 responses = [self.post_process_response(response) for response in responses]

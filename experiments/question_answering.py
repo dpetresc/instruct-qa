@@ -229,6 +229,7 @@ if __name__ == "__main__":
     )
 
     logger.info(f"Experiment ID: {experiment_id}")
+    # TODO make a small dataset ?
     dataset = load_dataset(
         args.dataset_name,
         split=args.dataset_split,
@@ -268,7 +269,11 @@ if __name__ == "__main__":
             kwargs['index_path'] = args.index_path
         else:
             kwargs['index_path'] = os.path.join(args.persistent_dir, 'nq/index/hnsw/index.dpr')
+        start = time.time()
         index = load_index(args.index_name, **kwargs)
+        end = time.time()
+        logging.info("Loading index time: %f", end - start)
+        logging.info("Index size: %f", index.__len__)
 
     retriever = None
     if index is not None or args.retriever_cached_results_fp is not None:
@@ -299,4 +304,7 @@ if __name__ == "__main__":
         use_cached_retrieved_results=isinstance(retriever, RetrieverFromFile),
         post_process_response=args.post_process_response,
     )
+    start = time.time()
     runner()
+    end = time.time()
+    logging.info("Total execution time: %f", end - start)
