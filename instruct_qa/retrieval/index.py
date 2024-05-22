@@ -281,9 +281,8 @@ class IndexFaissHNSW(IndexFaissFlatIP):
 class IndexCagra(IndexBase):
     def __init__(self, embeddings):
         import cupy as cp
-	    from pylibraft.common import DeviceResources
-	    from pylibraft.neighbors import cagra as pylibraft_cagra
-
+        from pylibraft.common import DeviceResources
+        from pylibraft.neighbors import cagra as pylibraft_cagra
 
         self.index = embeddings
 
@@ -297,8 +296,8 @@ class IndexCagra(IndexBase):
     
     def save(self, directory="index", filename="cagra"):
         import cupy as cp
-	    from pylibraft.common import DeviceResources
-	    from pylibraft.neighbors import cagra as pylibraft_cagra
+        from pylibraft.common import DeviceResources
+        from pylibraft.neighbors import cagra as pylibraft_cagra
 
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
@@ -307,8 +306,8 @@ class IndexCagra(IndexBase):
     @classmethod
     def load(cls, directory="index", filename="cagra"):
         import cupy as cp
-	    from pylibraft.common import DeviceResources
-	    from pylibraft.neighbors import cagra as pylibraft_cagra
+        from pylibraft.common import DeviceResources
+        from pylibraft.neighbors import cagra as pylibraft_cagra
 
         directory = Path(directory)
         index = pylibraft_cagra.load(str(directory / filename))
