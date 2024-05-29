@@ -30,7 +30,7 @@ def export_first_n_passages(input_file: str, output_file: str, n: int, id_col: i
 
 if __name__ == "__main__":
     input_file = "data/nq/collection/psgs_w100.tsv"
-    output_file = "data/nq/collection/psgs_w100_first_10000.tsv"
-    n = 10000
+    n = 10000000
+    output_file = "data/nq/collection/psgs_w100_first_"+str(n)+".tsv"
 
     export_first_n_passages(input_file, output_file, n)

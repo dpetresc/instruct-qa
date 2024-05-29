@@ -1,3 +1,4 @@
+import torch
 from instruct_qa.collections.utils import load_collection
 from instruct_qa.retrieval.utils import load_retriever, load_index
 from instruct_qa.prompt.utils import load_template
@@ -39,7 +40,8 @@ import pickle
 
 import logging
 
-nb_vectors_build = 10000
+#nb_vectors_build = 10000000
+nb_vectors_build = 21015324#10000000
 # Setup logging configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[logging.FileHandler(os.path.join("data/nq/index/hnsw", "output_hnsw_build_"+str(nb_vectors_build)+".log")), logging.StreamHandler()])
@@ -157,9 +159,9 @@ logging.info("Seconds: %f", end - start)
 
 faiss.write_index(index, index_filepath)
 
-loaded_index = faiss.read_index(index_filepath)
+#loaded_index = faiss.read_index(index_filepath)
 
-k = 1  # Number of nearest neighbors to search for
-distances, neighbors = loaded_index.search(vectors, k)
-print(distances)
-print(neighbors)
+#k = 1  # Number of nearest neighbors to search for
+#distances, neighbors = loaded_index.search(vectors, k)
+#print(distances)
+#print(neighbors)
