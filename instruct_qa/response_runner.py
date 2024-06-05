@@ -172,7 +172,7 @@ class ResponseRunner:
                 retrieved_indices = r_dict["indices"]
                 end = time.time()
                 logging.info("Retrieval total execution time: %f", end - start)
-                print("INDICES ", retrieved_indices, type(retrieved_indices))
+                #print("INDICES ", retrieved_indices, type(retrieved_indices))
 
             monitor.stop()
             runtime = monitor.get_runtime()
