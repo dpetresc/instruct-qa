@@ -1,7 +1,7 @@
 import json
 import numpy as np
 
-from instruct_qa.retrieval.index import IndexBase, IndexTorchFlat, IndexFaissFlatIP
+from instruct_qa.retrieval.index import IndexBase, IndexTorchFlat, IndexFaissFlatIP, IndexCagra
 
 
 class RetrieverBase:
@@ -79,6 +79,8 @@ class SentenceTransformerRetriever(RetrieverBase):
         **kwargs: dict
             Additional keyword arguments to pass to the query encoder.
         """
+        convert_to_tensor = kwargs.get("convert_to_tensor", False)
+        print(f"convert_to_tensor before encoding queries: {convert_to_tensor}")
         return self.query_model.encode(queries, **kwargs)
 
     def encode_documents(self, documents, **kwargs):
@@ -130,12 +132,17 @@ class SentenceTransformerRetriever(RetrieverBase):
 
         if isinstance(queries, list):
             if all(isinstance(q, str) for q in queries):
-                queries = self.encode_queries(queries, **kwargs)
+                # Ensure the index search is conducted on GPU tensors
+                if isinstance(self.index, IndexCagra):
+                    kwargs["convert_to_tensor"] = True
+                    queries = self.encode_queries(queries, **kwargs)
+                else:
+                    queries = self.encode_queries(queries, **kwargs)
             else:
                 raise ValueError(error_msg)
 
-        if not isinstance(queries, np.ndarray):
-            raise ValueError(error_msg)
+       # if not isinstance(queries, np.ndarray):
+       #     raise ValueError(error_msg)
 
         if self.index is None:
             raise ValueError("You must create an index first. Use `build_index`.")

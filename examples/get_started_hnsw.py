@@ -40,11 +40,12 @@ import pickle
 
 import logging
 
-#nb_vectors_build = 10000000
-nb_vectors_build = 21015324#10000000
+nb_vectors_build = 1000000
+#nb_vectors_build = 21015324#10000000
 # Setup logging configuration
+M = 32
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
-                    handlers=[logging.FileHandler(os.path.join("data/nq/index/hnsw", "output_hnsw_build_"+str(nb_vectors_build)+".log")), logging.StreamHandler()])
+                    handlers=[logging.FileHandler(os.path.join("data/nq/index/hnsw", "output_hnsw_build_"+str(nb_vectors_build)+"_"+str(M)+".log")), logging.StreamHandler()])
 
 def _get_gpu_stats(gpu_id):
     """Run nvidia-smi to get the gpu stats without continuous monitoring."""
@@ -116,13 +117,13 @@ logging.info("LOADED VECTORS")
 
 logging.info("Nb vectors: %d", len(vectors))
 
-index_filepath = os.path.join("data/nq/index/hnsw", "hnsw_"+str(nb_vectors_build)+".bin")
+index_filepath = os.path.join("data/nq/index/hnsw", "hnsw_"+str(nb_vectors_build)+"_"+str(M)+".bin")
 start = time.time()
 
 # TODO
 # Create the HNSW index
 d = vectors.shape[1]  # dimension of the vectors
-index = faiss.IndexHNSWFlat(d, 32)  # 32 is the number of neighbors in the HNSW graph
+index = faiss.IndexHNSWFlat(d, M)  # 32 is the number of neighbors in the HNSW graph
 index.hnsw.efConstruction = 200  # Controls accuracy and construction time
 index.hnsw.efSearch = 128
 index.hnsw.max_level = 2

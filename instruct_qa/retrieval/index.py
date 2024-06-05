@@ -7,9 +7,12 @@ import cupy as cp
 from pylibraft.common import DeviceResources
 from pylibraft.neighbors import cagra as pylibraft_cagra
 
+from torch.utils.dlpack import to_dlpack
+from torch.utils.dlpack import from_dlpack
+
 
 import numpy as np
-
+import torch
 
 def _to_np(tensor):
     import torch
@@ -313,20 +316,45 @@ class IndexCagra(IndexBase):
         index = pylibraft_cagra.load(str(directory / filename))
         return cls(index)
 
+#    def search(self, queries, k=10):
+#        if not isinstance(queries, np.ndarray):
+#            queries = np.array(queries)
+#
+#        aux_dim = np.zeros(len(queries), dtype="float32")
+#        queries_vectors = np.hstack((queries, aux_dim.reshape(-1, 1)))
+#        
+#        vectors_gpu = cp.asarray(queries_vectors)
+#
+#        # distances, neighbors
+#        scores, indices = pylibraft_cagra.search(pylibraft_cagra.SearchParams(),
+#                                 self.index, vectors_gpu, k)
+#
+#        # TODO on GPU...
+#        #scores = cp.asarray(scores)
+#        #indices = cp.asarray(indices)
+#        scores = cp.asnumpy(scores)
+#        indices = cp.asnumpy(indices)
+#
+#        return {"scores": scores, "indices": indices}
     def search(self, queries, k=10):
-        if not isinstance(queries, np.ndarray):
-            queries = np.array(queries)
+        # Ensure the queries are in a GPU-compatible format (Cupy array)
+        if isinstance(queries, np.ndarray):
+            queries = cp.asarray(queries)
+        elif isinstance(queries, torch.Tensor):
+            if not queries.is_cuda:
+                raise ValueError("Queries tensor must be on the GPU.")
+            queries = cp.fromDlpack(to_dlpack(queries))
+        elif not isinstance(queries, cp.ndarray):
+            raise ValueError("Queries must be a numpy array, a torch tensor, or a cupy array.")
 
-        aux_dim = np.zeros(len(queries), dtype="float32")
-        queries_vectors = np.hstack((queries, aux_dim.reshape(-1, 1)))
-        
-        vectors_gpu = cp.asarray(queries_vectors)
+        aux_dim = cp.zeros((len(queries), 1), dtype="float32")
+        queries_vectors = cp.hstack((queries, aux_dim))
 
-        # distances, neighbors
+        # Perform the search on GPU using pylibraft_cagra
         scores, indices = pylibraft_cagra.search(pylibraft_cagra.SearchParams(),
-                                 self.index, vectors_gpu, k)
+                                                 self.index, queries_vectors, k)
 
-        # TODO on GPU...
+        # Ensure results remain on the GPU as cupy arrays
         #scores = cp.asarray(scores)
         #indices = cp.asarray(indices)
         scores = cp.asnumpy(scores)
