@@ -14,31 +14,48 @@ class NaturalQuestionsDataset(Dataset):
         split: str = "validation",
         name: str = None,
         file_path: str = None,
+        nb_loaded: int = -1
     ):
         self.dataset_name = dataset_name
         self.split = split
         self.name = name
         self.data = []
-        self.load_data(file_path)
+        self.load_data(file_path, nb_loaded)
 
     def __len__(self):
         return len(self.data)
 
-    def load_data(self, file_path: str = None):
+    def load_data(self, file_path: str = None, nb_loaded=-1):
         if file_path:
             raise NotImplementedError("NaturalQuestionsDataset does not support loading from file_path")
         hf_dataset = load_dataset("nq_open", split=self.split, name=self.name)
-
-        for id_, sample in enumerate(hf_dataset):
-            self.data.append(
-                DataSample(
-                    id_=id_,
-                    question=sample["question"],
-                    answer=sample["answer"],
-                    context=[],
-                    metadata={},
+        
+        if nb_loaded != -1:
+            iteration = 0
+            for id_, sample in enumerate(hf_dataset):
+                self.data.append(
+                    DataSample(
+                        id_=id_,
+                        question=sample["question"],
+                        answer=sample["answer"],
+                        context=[],
+                        metadata={},
+                    )
                 )
-            )
+                iteration += 1
+                if iteration == nb_loaded:
+                    break
+        else:
+            for id_, sample in enumerate(hf_dataset):
+                self.data.append(
+                    DataSample(
+                        id_=id_,
+                        question=sample["question"],
+                        answer=sample["answer"],
+                        context=[],
+                        metadata={},
+                    )
+                )
 
     def __getitem__(self, index) -> DataSample:
         return self.data[index]

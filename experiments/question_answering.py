@@ -250,7 +250,9 @@ if __name__ == "__main__":
         split=args.dataset_split,
         name=args.dataset_config_name,
         file_path=args.dataset_file_path,
+        nb_loaded=100
     )
+    print(dataset)
     output_file = f"{args.persistent_dir}/results/{args.dataset_name}/response/{experiment_id}.jsonl"
     logger.info(f"Output response file: {output_file}")
     logger.info(f"Length of dataset: {len(dataset)}")

@@ -6,7 +6,7 @@ from instruct_qa.dataset import (
 )
 
 
-def load_dataset(dataset_name, split="validation", name=None, file_path=None):
+def load_dataset(dataset_name, split="validation", name=None, file_path=None, nb_loaded=-1):
     """
     Loads a dataset by name.
 
@@ -28,4 +28,4 @@ def load_dataset(dataset_name, split="validation", name=None, file_path=None):
     if split not in ["train", "validation", "test"]:
         raise NotImplementedError(f"Split {split} not supported.")
 
-    return dataset_mapping[dataset_name](split=split, name=name, file_path=file_path)
+    return dataset_mapping[dataset_name](split=split, name=name, file_path=file_path, nb_loaded=nb_loaded)
