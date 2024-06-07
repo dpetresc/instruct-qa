@@ -17,6 +17,9 @@ from transformers import (
     OPTForCausalLM,
 )
 
+import time
+import logging
+
 max_length = 1900
 
 import logging
@@ -150,6 +153,8 @@ class Llama(BaseGenerator):
             self.model.config.pad_token_id = self.model.config.eos_token_id
 
     def __call__(self, prompts):
+        start = time.time()
+
         _input = self.tokenizer(
             prompts,
             return_tensors="pt",
@@ -157,6 +162,11 @@ class Llama(BaseGenerator):
             max_length=max_length,
             truncation=True,
         ).to(self.device)
+        
+        end = time.time()
+        logging.info("Generation: Tokenization time and moving to device time: %f", end - start)
+        
+        start = time.time()
         generate_ids = self.model.generate(
             input_ids=_input.input_ids,
             attention_mask=_input.attention_mask,
@@ -165,7 +175,12 @@ class Llama(BaseGenerator):
             max_new_tokens=self.max_new_tokens,
             min_new_tokens=self.min_new_tokens,
         )
-        return [
+        
+        end = time.time()
+        logging.info("Generation: Generation time: %f", end - start)
+        
+        start = time.time()
+        responses_decode = [
             self.tokenizer.decode(
                 generate_ids[i, _input.input_ids.size(1) :],
                 skip_special_tokens=self.skip_special_tokens,
@@ -173,6 +188,10 @@ class Llama(BaseGenerator):
             )
             for i in range(generate_ids.size(0))
         ]
+        end = time.time()
+        logging.info("Generation: Decode time: %f", end - start)
+
+        return responses_decode
 
     def post_process_response(self, response):
         keywords = {"user:", "User:", "assistant:", "- Title:", "Question:"}

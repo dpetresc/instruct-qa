@@ -1,5 +1,6 @@
 import argparse
 import logging
+import logging.config
 from math import inf
 import os
 
@@ -212,7 +213,7 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    
+
     experiment_id = generate_experiment_id(
         name=args.dataset_name,
         split=args.dataset_split,
@@ -226,25 +227,49 @@ if __name__ == "__main__":
         index_name=args.index_name,
     )
 
-     # Create a logger that logs to both the console and a file.
-    output_file = f"{args.persistent_dir}/results/{args.dataset_name}/response/{experiment_id}.jsonl"
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    # Define output path for response and logs
+    output_dir = os.path.join(args.persistent_dir, "results", args.dataset_name, "response")
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, f"{experiment_id}_index-{args.index_name}_bs-{args.batch_size}.jsonl" if args.index_name else f"{experiment_id}.jsonl")
+    log_file = os.path.join(output_dir, f"{experiment_id}_index-{args.index_name}_bs-{args.batch_size}.log" if args.index_name else f"{experiment_id}.log")
 
-    # Create a logger that logs to the console.
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(os.path.basename(__file__))
+    # Create a logging configuration dictionary
+    logging_config = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "standard": {
+                "format": "%(asctime)s - %(levelname)s - %(message)s"
+            },
+        },
+        "handlers": {
+            "file": {
+                "level": "INFO",
+                "class": "logging.FileHandler",
+                "filename": log_file,
+                "formatter": "standard",
+            },
+            "console": {
+                "level": "INFO",
+                "class": "logging.StreamHandler",
+                "formatter": "standard",
+            },
+        },
+        "root": {
+            "handlers": ["file", "console"],
+            "level": "INFO",
+        },
+    }
 
-    file_handler = logging.FileHandler(output_file)
-    file_handler.setLevel(logging.INFO)
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-    logger.addHandler(file_handler)
+    # Apply the logging configuration
+    logging.config.dictConfig(logging_config)
+    logger = logging.getLogger()
 
     logger.info("Evaluating model:")
     log_commandline_args(args, logger.info)
-
-
+    
     logger.info(f"Experiment ID: {experiment_id}")
-    # TODO make a small dataset ?
+
     dataset = load_dataset(
         args.dataset_name,
         split=args.dataset_split,
@@ -253,7 +278,6 @@ if __name__ == "__main__":
         nb_loaded=100
     )
     print(dataset)
-    output_file = f"{args.persistent_dir}/results/{args.dataset_name}/response/{experiment_id}.jsonl"
     logger.info(f"Output response file: {output_file}")
     logger.info(f"Length of dataset: {len(dataset)}")
 
