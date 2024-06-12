@@ -164,8 +164,24 @@ class Llama(BaseGenerator):
         ).to(self.device)
         
         end = time.time()
+        print("Inputs : ", _input)
         logging.info("Generation: Tokenization time and moving to device time: %f", end - start)
         logging.info("Number of tokens: %d", _input.input_ids.size(1))
+
+        # Measure TTFT
+        start = time.time()
+        generate_ids = self.model.generate(
+            input_ids=_input.input_ids,
+            attention_mask=_input.attention_mask,
+            max_new_tokens=1,  # Only generate the first token
+            do_sample=True,
+            temperature=self.temperature,
+            top_p=self.top_p,
+            pad_token_id=self.tokenizer.pad_token_id,
+            eos_token_id=self.tokenizer.eos_token_id,
+        )
+        ttft = time.time() - start
+        logging.info("Generation: Time To First Token (TTFT): %f", ttft)
         
         start = time.time()
         generate_ids = self.model.generate(
@@ -178,8 +194,17 @@ class Llama(BaseGenerator):
         )
         
         end = time.time()
+        generation_time = end - start
         logging.info("Generation: Generation time: %f", end - start)
-        logging.info("Nb generated tokens: %d", generate_ids.size(1) - _input.input_ids.size(1))
+        num_generated_tokens = generate_ids.size(1) - _input.input_ids.size(1)
+        logging.info("Nb generated tokens: %d", num_generated_tokens)
+
+        # TPOT
+        if num_generated_tokens > 1:
+            tpot = (generation_time-ttft) / (num_generated_tokens-1)  # Estimating TPOT as average time per token after the first token
+        else:
+            tpot = 0
+        logging.info("Generation: Time Per Output Token (TPOT): %f", tpot)
         
         start = time.time()
         responses_decode = [
