@@ -165,6 +165,7 @@ class Llama(BaseGenerator):
         
         end = time.time()
         logging.info("Generation: Tokenization time and moving to device time: %f", end - start)
+        logging.info("Number of tokens: %d", _input.input_ids.size(1))
         
         start = time.time()
         generate_ids = self.model.generate(
@@ -178,6 +179,7 @@ class Llama(BaseGenerator):
         
         end = time.time()
         logging.info("Generation: Generation time: %f", end - start)
+        logging.info("Nb generated tokens: %d", generate_ids.size(1) - _input.input_ids.size(1))
         
         start = time.time()
         responses_decode = [
