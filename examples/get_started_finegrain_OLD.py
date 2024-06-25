@@ -55,7 +55,7 @@ def _get_gpu_stats(gpu_id):
 
 def loading():
     collection = load_collection("dpr_wiki_collection")
-    #index = load_index("dpr-nq-multi-hnsw")
+    index = load_index("dpr-nq-multi-hnsw")
     
     #print("loading retriever")
     #retriever = load_retriever("facebook-dpr-question_encoder-multiset-base", index)
@@ -68,8 +68,7 @@ def loading():
     #prompt_template = load_template("qa")
 
     #return collection, index, retriever, model, prompt_template
-    #return collection, index, None, None, None
-    return collection, None, None, None, None
+    return collection, index, None, None, None
 
 def running(loading_cached):
     #dataset = generate_data((10000, 10), np.float32)
@@ -94,64 +93,62 @@ def running(loading_cached):
     #index = pylibraft_cagra.extend(index, dataset_1_device, indices_1_device)
     #index = pylibraft_cagra.extend(index, dataset_2_device, indices_2_device)
 
-    collection, _, _, _, _ = loading_cached
+    collection, index, _, _, _ = loading_cached
 
-    print(collection)
+    cp.get_default_memory_pool().free_all_blocks()
+    gc.collect()
 
-#    cp.get_default_memory_pool().free_all_blocks()
-#    gc.collect()
-#
-#    #collection, index, retriever, model, prompt_template = loading_cached
-#
-#    #vectors = index.get_embeddings(0, 100)
-#    vectors = index.get_embeddings(0, len(collection.passages))
-#
-#    # 21015324 => 64,643,137,024 bytes
-#    # 700510 => 8 minutes
-#    # 350255 => 3.45 minutes
-#    # 105076 => 1 minute, 27266MiB (pas bcp plus pour build l'index)
-#
-#    #print(help(cagra))
-#    #print(help(pylibraft_cagra))
-#
-#    print("Nb vectors: ", len(vectors))
-#
-#    vectors_gpu = cp.asarray(vectors)
-#
-#    print(f"GPU Utilization before training: {_get_gpu_stats(0)[0][1]}")
-#
-#    resources = DeviceResources()
-#
-#    build_params = pylibraft_cagra.IndexParams(
-#        metric="euclidean",
-#        #intermediate_graph_degree=intermediate_graph_degree,
-#        #graph_degree=graph_degree,
-#        #build_algo=build_algo,
-#    )
-#    
-#    start = time.time()
-#
-#    #index = pylibraft_cagra.build_index(build_params, vectors_gpu)
-#    index = pylibraft_cagra.build(build_params, vectors_gpu)
-#    resources.sync()
-#    end = time.time()
-#    print("Seconds: ", end - start)
-#
-#    print(f"GPU Utilization after training: {_get_gpu_stats(0)[0][1]}")
-#
-#    index_filepath = os.path.join("data/nq/index/cagra", "cagra.bin")
-#    pylibraft_cagra.save(index_filepath, index) 
-#    #loaded_index = pylibraft_cagra.load(index_filepath)
-#    resources.sync()
-#    #print(help(pylibraft_cagra.search))
-#    #distances, neighbors = pylibraft_cagra.search(pylibraft_cagra.SearchParams(),
-#    #                                 loaded_index, vectors_gpu,
-#    #                                 1, handle=resources)
-#    #resources.sync()
-#    #distances = cp.asarray(distances)
-#    #neighbors = cp.asarray(neighbors)
-#    #print(distances, neighbors)
-#
+    #collection, index, retriever, model, prompt_template = loading_cached
+
+    #vectors = index.get_embeddings(0, 100)
+    vectors = index.get_embeddings(0, len(collection.passages))
+
+    # 21015324 => 64,643,137,024 bytes
+    # 700510 => 8 minutes
+    # 350255 => 3.45 minutes
+    # 105076 => 1 minute, 27266MiB (pas bcp plus pour build l'index)
+
+    #print(help(cagra))
+    #print(help(pylibraft_cagra))
+
+    print("Nb vectors: ", len(vectors))
+
+    vectors_gpu = cp.asarray(vectors)
+
+    print(f"GPU Utilization before training: {_get_gpu_stats(0)[0][1]}")
+
+    resources = DeviceResources()
+
+    build_params = pylibraft_cagra.IndexParams(
+        metric="euclidean",
+        #intermediate_graph_degree=intermediate_graph_degree,
+        #graph_degree=graph_degree,
+        #build_algo=build_algo,
+    )
+    
+    start = time.time()
+
+    #index = pylibraft_cagra.build_index(build_params, vectors_gpu)
+    index = pylibraft_cagra.build(build_params, vectors_gpu)
+    resources.sync()
+    end = time.time()
+    print("Seconds: ", end - start)
+
+    print(f"GPU Utilization after training: {_get_gpu_stats(0)[0][1]}")
+
+    index_filepath = os.path.join("data/nq/index/cagra", "cagra.bin")
+    pylibraft_cagra.save(index_filepath, index) 
+    #loaded_index = pylibraft_cagra.load(index_filepath)
+    resources.sync()
+    #print(help(pylibraft_cagra.search))
+    #distances, neighbors = pylibraft_cagra.search(pylibraft_cagra.SearchParams(),
+    #                                 loaded_index, vectors_gpu,
+    #                                 1, handle=resources)
+    #resources.sync()
+    #distances = cp.asarray(distances)
+    #neighbors = cp.asarray(neighbors)
+    #print(distances, neighbors)
+
 
     """ queries = ["what is haleys comet"]
 
