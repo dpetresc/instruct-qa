@@ -285,8 +285,10 @@ if __name__ == "__main__":
     kwargs = {}
     if args.document_cache_dir is not None:
         kwargs['cachedir'] = args.document_cache_dir
-    else:
+    elif "dpr" in args.document_collection_name:
         kwargs['cachedir'] = os.path.join(args.persistent_dir, 'nq/collection')
+    elif "topiocqa" in args.document_collection_name:
+        kwargs['cachedir'] = os.path.join(args.persistent_dir, 'topiocqa/collection')
     if args.document_file_name is not None:
         kwargs['file_name'] = args.document_file_name
     document_collection = load_collection(args.document_collection_name, **kwargs)

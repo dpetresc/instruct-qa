@@ -11,6 +11,7 @@ class TopiOCQADataset(Dataset):
         split: str = "validation",
         name: str = None,
         file_path: str = None,
+        nb_loaded: int = -1
     ):
         self.dataset_name = dataset_name
         self.split = split
